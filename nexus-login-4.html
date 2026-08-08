@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InLink — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=Dancing+Script:wght@700;800&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────
+   RESET & TOKENS
+───────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:         #04000c;
+  --bg2:        #07001a;
+  --panel:      rgba(255,255,255,0.042);
+  --border:     rgba(147,51,234,0.22);
+  --border-hi:  rgba(167,139,250,0.5);
+  --purple:     #9333ea;
+  --purple-hi:  #a855f7;
+  --purple-pale:#d8b4fe;
+  --white:      #ffffff;
+  --text-hi:    #f5f0ff;
+  --text-lo:    rgba(245,240,255,0.52);
+  --text-faint: rgba(245,240,255,0.24);
+  --danger:     #ef4444;
+  --success:    #22c55e;
+}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg); color:var(--text-hi);
+  -webkit-font-smoothing:antialiased;
+}
+
+/* auth overlay styles below */
+
+/* ══════════════════════════════════════
+   INFINITY LEMNISCATE ANIMATION
+   Path length ≈ 680px for this shape
+══════════════════════════════════════ */
+
+/* Draw-on: path reveals itself stroke-by-stroke */
+@keyframes drawInf{
+  0%  {stroke-dashoffset:680;}
+  100%{stroke-dashoffset:0;}
+}
+/* Continuous travelling spark after reveal */
+@keyframes loopLight{
+  0%  {stroke-dashoffset:0;}
+  100%{stroke-dashoffset:-680;}
+}
+/* Subtle pulse on the glow rings */
+@keyframes glowPulse{
+  0%,100%{opacity:.18;}
+  50%    {opacity:.32;}
+}
+
+/* Base stroke — uses gradient, draw-in animation */
+.inf-line{
+  fill:none;stroke-width:9;stroke-linecap:round;
+  stroke:url(#infMainGrad);
+  stroke-dasharray:680;stroke-dashoffset:680;
+  animation:drawInf 1.3s cubic-bezier(.4,0,.2,1) forwards;
+}
+/* Travelling bright spark — rides on top after draw */
+.inf-spark{
+  fill:none;stroke-linecap:round;
+  stroke-width:9;stroke-dasharray:80 600;
+  stroke:url(#infSparkGrad);
+  stroke-dashoffset:680;
+  opacity:0;
+  /* animation added by JS when visible */
+}
+
+
+
+/* ─────────────────────────────────────────────
+   MAIN LAYOUT
+───────────────────────────────────────────── */
+#app{
+  display:flex;height:100vh;
+  opacity:1;
+}
+
+/* ── LEFT — brand panel ── */
+.brand-side{
+  flex:1;
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse 70% 80% at 35% 50%,#140030 0%,#06001a 50%,#000 100%);
+  display:flex;align-items:center;justify-content:center;
+  padding:48px;
+}
+/* Ambient orbs */
+.orb{position:absolute;border-radius:50%;filter:blur(90px);}
+.o1{width:560px;height:560px;background:#4c1d95;opacity:.25;top:-140px;left:-140px;}
+.o2{width:340px;height:340px;background:#7c3aed;opacity:.2;bottom:0;right:-80px;}
+.o3{width:180px;height:180px;background:#c084fc;opacity:.18;top:55%;left:8%;}
+/* Grid overlay */
+.brand-side::after{
+  content:'';position:absolute;inset:0;
+  background:
+    linear-gradient(rgba(147,51,234,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(147,51,234,.06) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask:radial-gradient(ellipse 75% 75% at 38% 50%,black 0%,transparent 100%);
+}
+
+.brand-inner{position:relative;z-index:2;text-align:center;max-width:500px;}
+
+/* Infinity logo in brand panel */
+.brand-logo-svg{
+  width:300px;height:150px;overflow:visible;
+  margin:0 auto 36px auto;display:block;
+  filter:drop-shadow(0 0 40px rgba(147,51,234,.5));
+}
+
+/* Pulse ring behind logo */
+.pulse-ring{
+  position:absolute;
+  width:280px;height:140px;
+  border-radius:50%;
+  border:1px solid rgba(167,139,250,.2);
+  animation:pulseRing 3s ease-in-out infinite;
+  top:50%;left:50%;transform:translate(-50%,-55%);
+}
+.pulse-ring:nth-child(2){animation-delay:.8s;border-color:rgba(167,139,250,.1);}
+@keyframes pulseRing{
+  0%,100%{transform:translate(-50%,-55%) scale(1);opacity:.5;}
+  50%{transform:translate(-50%,-55%) scale(1.08);opacity:1;}
+}
+
+.brand-name{
+  font-family:'Dancing Script',cursive;
+  font-weight:800;font-size:62px;letter-spacing:.04em;
+  background:linear-gradient(135deg,#fff 0%,#e9d5ff 45%,#9333ea 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  margin-bottom:14px;
+  text-shadow:none;
+}
+.brand-tag{
+  font-size:15px;color:var(--text-lo);line-height:1.75;
+  max-width:360px;margin:0 auto 28px auto;
+}
+.pill-row{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:center;
+}
+.pill{
+  padding:6px 14px;border-radius:20px;
+  background:rgba(147,51,234,.12);
+  border:1px solid rgba(167,139,250,.22);
+  font-size:11.5px;font-family:'Space Grotesk',sans-serif;
+  font-weight:600;letter-spacing:.06em;
+  color:var(--purple-pale);
+}
+
+/* ── RIGHT — auth panel ── */
+.auth-side{
+  width:460px;flex-shrink:0;
+  background:rgba(6,0,18,.92);
+  border-left:1px solid var(--border);
+  backdrop-filter:blur(30px);
+  display:flex;align-items:center;justify-content:center;
+  padding:32px 44px;
+  overflow-y:auto;
+}
+.auth-box{width:100%;max-width:360px;}
+
+/* Tabs */
+.tabs{
+  display:flex;gap:3px;
+  background:rgba(255,255,255,.04);
+  border:1px solid var(--border);
+  border-radius:14px;padding:4px;
+  margin-bottom:32px;
+}
+.tab{
+  flex:1;padding:9px 12px;border-radius:10px;
+  text-align:center;cursor:pointer;
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:600;font-size:13.5px;
+  color:var(--text-lo);transition:all .22s;
+}
+.tab.active{
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  color:#fff;
+  box-shadow:0 4px 20px rgba(124,58,237,.4);
+}
+
+/* Title */
+.form-title{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;font-size:24px;margin-bottom:5px;
+}
+.form-sub{font-size:13px;color:var(--text-lo);margin-bottom:28px;}
+
+/* Name row */
+.name-row{display:flex;gap:12px;}
+.name-row .ig{flex:1;}
+
+/* Input group */
+.ig{position:relative;margin-bottom:18px;}
+.ig input,.ig select{
+  width:100%;padding:15px 42px 7px 15px;
+  background:rgba(255,255,255,.035);
+  border:1.5px solid var(--border);
+  border-radius:13px;
+  color:var(--text-hi);font-size:14px;
+  font-family:'Inter',sans-serif;
+  outline:none;transition:border-color .2s,background .2s;
+  appearance:none;
+}
+.ig input:focus{
+  border-color:var(--purple-hi);
+  background:rgba(147,51,234,.07);
+}
+.ig label{
+  position:absolute;left:15px;top:13px;
+  font-size:13px;color:var(--text-faint);
+  pointer-events:none;transition:all .2s;
+  font-family:'Inter',sans-serif;
+}
+.ig input:focus ~ label,
+.ig input:not(:placeholder-shown) ~ label,
+.ig input.filled ~ label{
+  top:5px;font-size:9.5px;letter-spacing:.08em;
+  color:var(--purple-hi);text-transform:uppercase;
+}
+.ig .ico{
+  position:absolute;right:13px;top:50%;
+  transform:translateY(-50%);
+  color:var(--text-faint);transition:color .2s;
+  cursor:pointer;line-height:0;
+}
+.ig input:focus ~ .ico{color:var(--purple-hi);}
+
+/* Password strength */
+.str-wrap{margin:-10px 0 18px 0;}
+.str-track{height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;}
+.str-fill{height:100%;width:0%;border-radius:2px;transition:width .3s,background .3s;}
+.str-lbl{font-size:9.5px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.07em;color:var(--text-faint);margin-top:4px;min-height:14px;}
+
+/* Row util */
+.row-mid{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;}
+.chk-lbl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-lo);cursor:pointer;}
+.chk-lbl input[type=checkbox]{accent-color:var(--purple-hi);width:14px;height:14px;}
+.txt-link{font-size:13px;color:var(--purple-pale);cursor:pointer;transition:color .2s;}
+.txt-link:hover{color:#fff;}
+
+/* Submit */
+.btn-go{
+  width:100%;padding:14px;border:none;border-radius:13px;cursor:pointer;
+  background:linear-gradient(135deg,#7c3aed 0%,#9333ea 55%,#a855f7 100%);
+  color:#fff;font-family:'Space Grotesk',sans-serif;
+  font-weight:700;font-size:14.5px;letter-spacing:.04em;
+  position:relative;overflow:hidden;
+  box-shadow:0 6px 28px rgba(124,58,237,.4);
+  transition:transform .15s,box-shadow .15s,background .3s;
+}
+.btn-go:hover{transform:translateY(-1px);box-shadow:0 10px 34px rgba(124,58,237,.55);}
+.btn-go:active{transform:translateY(0);}
+.btn-go::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  transform:translateX(-100%);transition:transform .55s;
+}
+.btn-go:hover::after{transform:translateX(100%);}
+.btn-go.loading{background:rgba(124,58,237,.45);}
+.btn-go.ok{background:linear-gradient(135deg,#15803d,#22c55e);}
+
+/* Divider */
+.divider{
+  display:flex;align-items:center;gap:10px;
+  margin:20px 0;font-size:11px;
+  color:var(--text-faint);letter-spacing:.06em;
+}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Social */
+.social-row{display:flex;gap:10px;}
+.btn-soc{
+  flex:1;padding:11px 8px;
+  background:rgba(255,255,255,.04);
+  border:1.5px solid var(--border);
+  border-radius:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  font-size:12.5px;color:var(--text-lo);
+  font-family:'Inter',sans-serif;transition:border-color .2s,color .2s;
+}
+.btn-soc:hover{border-color:var(--border-hi);color:var(--text-hi);}
+
+/* Footer */
+.auth-footer{
+  margin-top:24px;text-align:center;
+  font-size:13px;color:var(--text-lo);
+}
+.auth-footer span{color:var(--purple-pale);cursor:pointer;transition:color .2s;}
+.auth-footer span:hover{color:#fff;}
+
+/* Error message */
+.err-msg{
+  font-size:12px;color:var(--danger);
+  padding:10px 14px;
+  background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.22);
+  border-radius:10px;margin-bottom:16px;
+  display:none;
+}
+.err-msg.show{display:block;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .brand-side{display:none;}
+  .auth-side{width:100%;border-left:none;padding:32px 24px;}
+}
+
+/* ── SHAKE ── */
+@keyframes shake{
+  0%,100%{transform:translateX(0);}
+  20%,60%{transform:translateX(-7px);}
+  40%,80%{transform:translateX(7px);}
+}
+.shake{animation:shake .4s ease;}
+
+/* ── SETUP MODAL ── */
+.setup-scrim{
+  position:fixed;inset:0;z-index:400;
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+  opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s;
+}
+.setup-scrim.open{opacity:1;visibility:visible;}
+.setup-modal{
+  background:#0d0020;border:1px solid rgba(147,51,234,.3);
+  border-radius:24px;width:min(540px,96vw);max-height:88vh;
+  overflow-y:auto;padding:36px 32px;position:relative;
+}
+.setup-close{
+  position:absolute;top:16px;right:16px;
+  width:32px;height:32px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:1px solid rgba(147,51,234,.25);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:rgba(245,240,255,.5);font-size:18px;line-height:1;
+}
+.setup-close:hover{color:#fff;}
+.setup-title{
+  font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:21px;
+  margin-bottom:6px;
+}
+.setup-sub{font-size:13px;color:var(--text-lo);margin-bottom:28px;line-height:1.6;}
+.setup-step{
+  border:1px solid rgba(147,51,234,.2);border-radius:16px;
+  padding:20px;margin-bottom:16px;
+  background:rgba(147,51,234,.04);
+}
+.setup-step-head{
+  display:flex;align-items:center;gap:12px;margin-bottom:10px;
+}
+.setup-badge{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:12px;
+}
+.setup-step-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;}
+.setup-step p{font-size:12.5px;color:var(--text-lo);line-height:1.65;margin-bottom:8px;}
+.setup-step p:last-child{margin-bottom:0;}
+.setup-step a{color:var(--purple-pale);text-decoration:none;}
+.setup-step a:hover{color:#fff;text-decoration:underline;}
+.setup-code{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  background:rgba(0,0,0,.4);border:1px solid rgba(147,51,234,.2);
+  border-radius:8px;padding:10px 13px;color:#c4b5fd;
+  margin:8px 0;word-break:break-all;line-height:1.55;
+}
+.setup-input{
+  width:100%;padding:11px 13px;margin-top:8px;
+  background:rgba(255,255,255,.04);border:1.5px solid rgba(147,51,234,.25);
+  border-radius:10px;color:#f5f0ff;font-family:'JetBrains Mono',monospace;
+  font-size:12px;outline:none;transition:border-color .2s;
+}
+.setup-input:focus{border-color:var(--purple-hi);}
+.setup-input::placeholder{color:rgba(245,240,255,.22);}
+.setup-save{
+  width:100%;margin-top:20px;padding:13px;border:none;border-radius:13px;
+  background:linear-gradient(135deg,#7c3aed,#a855f7);
+  color:#fff;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:14px;
+  cursor:pointer;letter-spacing:.04em;
+  box-shadow:0 4px 20px rgba(124,58,237,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.setup-save:hover{transform:translateY(-1px);box-shadow:0 8px 28px rgba(124,58,237,.5);}
+.provider-status{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:10px;font-family:'JetBrains Mono',monospace;
+  padding:3px 9px;border-radius:10px;margin-left:auto;
+}
+.provider-status.active{background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.25);}
+.provider-status.pending{background:rgba(234,179,8,.12);color:#fbbf24;border:1px solid rgba(234,179,8,.2);}
+</style>
+
+<!-- OAuth SDKs -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js" async defer></script>
+</head>
+<body>
+
+<!-- ── Shared SVG defs ── -->
+<svg style="width:0;height:0;position:absolute;">
+  <defs>
+    <!--
+      LEMNISCATE PATH (reused everywhere via <use>):
+      ViewBox 0 0 300 130, centre (150,65)
+      Loops: ~132 px wide × 80 px tall each → 1.65 : 1 ratio (elongated, not circular)
+      Path length ≈ 680 px
+    -->
+    <path id="INF"
+      d="M 150,65
+         C 148,49 115,24 85,24
+         C 44,24 18,42 18,65
+         C 18,88 44,106 85,106
+         C 115,106 148,81 150,65
+         C 152,49 185,24 215,24
+         C 256,24 282,42 282,65
+         C 282,88 256,106 215,106
+         C 185,106 152,81 150,65 Z"/>
+
+    <!-- Main gradient: white (left) → purple (right), tracks x across full shape -->
+    <linearGradient id="infMainGrad" gradientUnits="userSpaceOnUse" x1="18" y1="0" x2="282" y2="0">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="30%"  stop-color="#ede9fe"/>
+      <stop offset="52%"  stop-color="#c084fc"/>
+      <stop offset="75%"  stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </linearGradient>
+
+    <!-- Spark: bright white travelling highlight -->
+    <linearGradient id="infSparkGrad" gradientUnits="userSpaceOnUse" x1="18" y1="0" x2="282" y2="0">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="45%"  stop-color="#ffffff" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#e9d5ff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Logo panel gradient (same range) -->
+    <linearGradient id="logoGrad" gradientUnits="userSpaceOnUse" x1="18" y1="0" x2="282" y2="0">
+      <stop offset="0%"   stop-color="#ffffff"/>
+      <stop offset="30%"  stop-color="#ede9fe"/>
+      <stop offset="55%"  stop-color="#c084fc"/>
+      <stop offset="80%"  stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="fatGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="midGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="sharpGlow" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dotGlow" x="-150%" y="-150%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ═══════════════════════════════════════════
+     AUTH LOADING OVERLAY — appears on button click
+═══════════════════════════════════════════ -->
+<div id="authLoader" style="
+  position:fixed;inset:0;z-index:300;
+  background:#000;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:30px;
+  opacity:0;visibility:hidden;
+  transition:opacity .35s ease;
+">
+  <div style="position:relative;width:310px;height:155px;">
+    <svg id="authLoopSvg" viewBox="0 0 300 130" width="310" height="130" overflow="visible">
+
+      <!-- ── 1. FAT AMBIENT PURPLE GLOW ── -->
+      <use href="#INF" fill="none" stroke="rgba(124,58,237,0.22)" stroke-width="28"
+           stroke-linecap="round" filter="url(#fatGlow)"/>
+
+      <!-- ── 2. MID GLOW ── -->
+      <use href="#INF" fill="none" stroke="rgba(167,139,250,0.4)" stroke-width="16"
+           stroke-linecap="round" filter="url(#midGlow)"/>
+
+      <!-- ── 3. RIGHT LOOP — drawn FIRST (goes "under" at crossing) ── -->
+      <path id="authRightLoop" fill="none" stroke="url(#infMainGrad)" stroke-width="9"
+            stroke-linecap="round"
+            d="M 150,65 C 152,49 185,24 215,24 C 256,24 282,42 282,65
+               C 282,88 256,106 215,106 C 185,106 152,81 150,65"
+            filter="url(#sharpGlow)" opacity="0"/>
+
+      <!-- ── 4. CROSSING COVER — dark ellipse hides where right loop passes behind ── -->
+      <ellipse id="authCover" cx="150" cy="65" rx="11" ry="18"
+               fill="#000000" opacity="0"/>
+
+      <!-- ── 5. LEFT LOOP — drawn SECOND (goes "over" at crossing) ── -->
+      <path id="authLeftLoop" fill="none" stroke="url(#infMainGrad)" stroke-width="9"
+            stroke-linecap="round"
+            d="M 150,65 C 148,49 115,24 85,24 C 44,24 18,42 18,65
+               C 18,88 44,106 85,106 C 115,106 148,81 150,65"
+            filter="url(#sharpGlow)" opacity="0"/>
+
+      <!-- ── 6. DRAW-ON ANIMATION LINE (full path, used during reveal phase) ── -->
+      <path id="authLine" class="inf-line" style="stroke-dashoffset:680;animation:none;"
+            fill="none" stroke="url(#infMainGrad)" stroke-width="9"
+            stroke-linecap="round" filter="url(#sharpGlow)"
+            d="M 150,65 C 148,49 115,24 85,24 C 44,24 18,42 18,65
+               C 18,88 44,106 85,106 C 115,106 148,81 150,65
+               C 152,49 185,24 215,24 C 256,24 282,42 282,65
+               C 282,88 256,106 215,106 C 185,106 152,81 150,65 Z"/>
+
+      <!-- ── 7. TRAVELLING SPARK — rides the full path ── -->
+      <path id="authSpark" class="inf-spark"
+            fill="none" stroke="url(#infSparkGrad)" stroke-width="9"
+            stroke-linecap="round" filter="url(#sharpGlow)"
+            d="M 150,65 C 148,49 115,24 85,24 C 44,24 18,42 18,65
+               C 18,88 44,106 85,106 C 115,106 148,81 150,65
+               C 152,49 185,24 215,24 C 256,24 282,42 282,65
+               C 282,88 256,106 215,106 C 185,106 152,81 150,65 Z"
+            style="stroke-dasharray:80 600;stroke-dashoffset:680;opacity:0;"/>
+
+      <!-- Hidden path for animateMotion -->
+      <path id="authMpath" fill="none" stroke="none"
+            d="M 150,65 C 148,49 115,24 85,24 C 44,24 18,42 18,65
+               C 18,88 44,106 85,106 C 115,106 148,81 150,65
+               C 152,49 185,24 215,24 C 256,24 282,42 282,65
+               C 282,88 256,106 215,106 C 185,106 152,81 150,65 Z"/>
+
+      <!-- Travelling dot -->
+      <circle id="authDot" r="5" fill="white" filter="url(#dotGlow)" opacity="0">
+        <animateMotion id="authDotMotion" dur="1.8s" repeatCount="indefinite"
+                       rotate="auto" begin="indefinite">
+          <mpath href="#authMpath"/>
+        </animateMotion>
+      </circle>
+    </svg>
+  </div>
+
+  <div style="
+    font-family:'Dancing Script',cursive;
+    font-weight:800;font-size:34px;letter-spacing:.06em;
+    background:linear-gradient(90deg,#fff 0%,#d8b4fe 55%,#9333ea 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  " id="authLoaderWord">InLink</div>
+
+  <div style="text-align:center;">
+    <div style="width:200px;height:2px;background:rgba(147,51,234,.15);border-radius:2px;overflow:hidden;margin:0 auto 10px auto;">
+      <div id="authBar" style="height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#a855f7,#fff);border-radius:2px;transition:width .1s linear;"></div>
+    </div>
+    <div id="authStatus" style="font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;color:rgba(245,240,255,.38);">AUTHENTICATING</div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════
+     APP
+═══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- ── LEFT: Brand panel ── -->
+  <div class="brand-side">
+    <div class="orb o1"></div>
+    <div class="orb o2"></div>
+    <div class="orb o3"></div>
+
+    <div class="brand-inner">
+      <!-- Static InLink infinity logo — proper lemniscate with crossing effect -->
+      <div style="position:relative;width:320px;height:138px;margin:0 auto 32px auto;">
+        <svg viewBox="0 0 300 130" width="320" height="138" style="overflow:visible;"
+             filter="drop-shadow(0 0 32px rgba(124,58,237,0.55))">
+
+          <!-- ── FAT AMBIENT PURPLE GLOW ── -->
+          <use href="#INF" fill="none" stroke="rgba(109,40,217,0.28)" stroke-width="30"
+               stroke-linecap="round" filter="url(#fatGlow)"
+               style="animation:glowPulse 3s ease-in-out infinite;"/>
+
+          <!-- ── MID GLOW ── -->
+          <use href="#INF" fill="none" stroke="rgba(167,139,250,0.45)" stroke-width="17"
+               stroke-linecap="round" filter="url(#midGlow)"/>
+
+          <!-- ── RIGHT LOOP — drawn FIRST (goes "under" at center crossing) ── -->
+          <path fill="none" stroke="url(#logoGrad)" stroke-width="9.5"
+                stroke-linecap="round"
+                d="M 150,65 C 152,49 185,24 215,24 C 256,24 282,42 282,65
+                   C 282,88 256,106 215,106 C 185,106 152,81 150,65"
+                filter="url(#sharpGlow)"/>
+
+          <!-- ── CROSSING COVER — background-coloured ellipse hides "under" ribbon ── -->
+          <!-- Its fill matches the brand-side background so the right loop appears to pass behind -->
+          <ellipse cx="150" cy="65" rx="11.5" ry="19" fill="#0a0015"/>
+
+          <!-- ── LEFT LOOP — drawn SECOND (goes "over" at center crossing) ── -->
+          <path fill="none" stroke="url(#logoGrad)" stroke-width="9.5"
+                stroke-linecap="round"
+                d="M 150,65 C 148,49 115,24 85,24 C 44,24 18,42 18,65
+                   C 18,88 44,106 85,106 C 115,106 148,81 150,65"
+                filter="url(#sharpGlow)"/>
+
+          <!-- ── SPECULAR EDGE HIGHLIGHT at crossing (simulates 3D ribbon top face) ── -->
+          <!-- A bright thin line across the crossing X shows the ribbon edge -->
+          <line x1="143" y1="80" x2="157" y2="50"
+                stroke="rgba(255,255,255,0.55)" stroke-width="2.5"
+                stroke-linecap="round" filter="url(#sharpGlow)"/>
+
+          <!-- ── TOP-EDGE HIGHLIGHT — thin white streak along outer top edge (3D tube) ── -->
+          <path fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2.5"
+                stroke-linecap="round" stroke-dasharray="18 14"
+                d="M 85,24 C 44,24 18,42 18,65"
+                filter="url(#sharpGlow)"/>
+
+          <!-- ── Static bright specular dots ── -->
+          <!-- Left loop outer top — brightest white highlight -->
+          <circle cx="52" cy="30" r="4.5" fill="white" opacity="0.9" filter="url(#dotGlow)"/>
+          <!-- Right loop outer bottom — purple side highlight -->
+          <circle cx="248" cy="100" r="3" fill="#c084fc" opacity="0.7" filter="url(#sharpGlow)"/>
+          <!-- Right loop top — faint white -->
+          <circle cx="248" cy="30" r="2.5" fill="white" opacity="0.4" filter="url(#sharpGlow)"/>
+        </svg>
+      </div>
+
+      <div class="brand-name">InLink</div>
+      <p class="brand-tag">One unified surface for social, streaming,<br>gaming, trading and everything in between.</p>
+      <div class="pill-row">
+        <span class="pill">Social</span>
+        <span class="pill">Streaming</span>
+        <span class="pill">Gaming</span>
+        <span class="pill">Forex</span>
+        <span class="pill">Chat</span>
+        <span class="pill">Reels</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Auth panel ── -->
+  <div class="auth-side">
+    <div class="auth-box">
+
+      <!-- Tab switcher -->
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-tab="in" onclick="switchTab('in')" role="tab">Sign In</div>
+        <div class="tab" data-tab="up" onclick="switchTab('up')" role="tab">Sign Up</div>
+      </div>
+
+      <!-- Error banner -->
+      <div class="err-msg" id="errMsg"></div>
+
+      <!-- ── SIGN IN ── -->
+      <div id="formIn">
+        <div class="form-title">Welcome back</div>
+        <div class="form-sub">Sign in to continue to InLink</div>
+
+        <div class="ig">
+          <input type="email" id="inEmail" placeholder=" " autocomplete="email">
+          <label for="inEmail">Email address</label>
+          <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        </div>
+
+        <div class="ig">
+          <input type="password" id="inPass" placeholder=" " autocomplete="current-password">
+          <label for="inPass">Password</label>
+          <span class="ico" onclick="togglePwd('inPass',this)" title="Show/hide password">
+            <svg id="eyeIn" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+
+        <div class="row-mid">
+          <label class="chk-lbl"><input type="checkbox" checked id="rememberMe"> Remember me</label>
+          <span class="txt-link" onclick="showMsg('Password reset link sent to your email.')">Forgot password?</span>
+        </div>
+
+        <button class="btn-go" id="btnIn" onclick="doSignIn()">Sign In</button>
+
+        <div class="divider">OR CONTINUE WITH</div>
+
+        <div class="social-row">
+          <button class="btn-soc" id="btnGoogle" onclick="signInWithGoogle()">
+            <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google
+          </button>
+          <button class="btn-soc" id="btnApple" onclick="signInWithApple()">
+            <svg width="15" height="15" viewBox="0 0 814 1000" fill="currentColor"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 680.6 0 558.4 0 440.4c0-203.2 133-310.7 264-310.7 69.4 0 127.1 45.8 170.3 45.8 41.3 0 106.4-48.8 184.6-48.8 29.1 0 108.2 2.6 168.5 80.1zm-87.7-180.5c31.4-37.7 53.3-89.8 53.3-141.9 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 84.5-55.1 139.9 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.3-72.1z"/></svg>
+            Apple
+          </button>
+        </div>
+
+        <div class="auth-footer">
+          New to InLink? <span onclick="switchTab('up')">Create a free account →</span>
+        </div>
+      </div>
+
+      <!-- ── SIGN UP ── -->
+      <div id="formUp" style="display:none;">
+        <div class="form-title">Create account</div>
+        <div class="form-sub">Join InLink — it's completely free</div>
+
+        <div class="name-row">
+          <div class="ig">
+            <input type="text" id="upFirst" placeholder=" " autocomplete="given-name">
+            <label for="upFirst">First name</label>
+          </div>
+          <div class="ig">
+            <input type="text" id="upLast" placeholder=" " autocomplete="family-name">
+            <label for="upLast">Last name</label>
+          </div>
+        </div>
+
+        <div class="ig">
+          <input type="text" id="upUser" placeholder=" " autocomplete="username">
+          <label for="upUser">Username</label>
+          <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+        </div>
+
+        <div class="ig">
+          <input type="email" id="upEmail" placeholder=" " autocomplete="email">
+          <label for="upEmail">Email address</label>
+          <span class="ico"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></span>
+        </div>
+
+        <div class="ig">
+          <input type="password" id="upPass" placeholder=" " autocomplete="new-password">
+          <label for="upPass">Password</label>
+          <span class="ico" onclick="togglePwd('upPass',this)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+
+        <!-- Password strength -->
+        <div class="str-wrap">
+          <div class="str-track"><div class="str-fill" id="strFill"></div></div>
+          <div class="str-lbl" id="strLbl"></div>
+        </div>
+
+        <div class="ig" style="margin-bottom:22px;">
+          <label class="chk-lbl" style="top:auto;position:static;">
+            <input type="checkbox" id="upAgree">
+            I agree to the <span class="txt-link" style="margin-left:4px;">Terms &amp; Privacy Policy</span>
+          </label>
+        </div>
+
+        <button class="btn-go" id="btnUp" onclick="doSignUp()">Create Account</button>
+
+        <div class="auth-footer">
+          Already have an account? <span onclick="switchTab('in')">Sign in →</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── APP shows immediately — no initial loader ── */
+document.getElementById('app').classList.add('show');
+
+/* ── TAB SWITCH ── */
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===tab));
+  document.getElementById('formIn').style.display  = tab==='in' ? 'block' : 'none';
+  document.getElementById('formUp').style.display  = tab==='up' ? 'block' : 'none';
+  hide('errMsg');
+}
+
+/* ── PASSWORD TOGGLE ── */
+function togglePwd(id, ico){
+  const inp = document.getElementById(id);
+  const show = inp.type === 'text';
+  inp.type = show ? 'password' : 'text';
+  ico.style.color = show ? '' : 'var(--purple-hi)';
+}
+
+/* ── PASSWORD STRENGTH ── */
+document.getElementById('upPass').addEventListener('input', function(){
+  const val = this.value;
+  let s = 0;
+  if(val.length >= 8) s++;
+  if(/[A-Z]/.test(val)) s++;
+  if(/[0-9]/.test(val)) s++;
+  if(/[^A-Za-z0-9]/.test(val)) s++;
+  const fills  = ['14%','38%','65%','100%'];
+  const colors = ['#ef4444','#f97316','#eab308','#22c55e'];
+  const labels = ['WEAK','FAIR','GOOD','STRONG'];
+  const fill = document.getElementById('strFill');
+  const lbl  = document.getElementById('strLbl');
+  fill.style.width      = val.length ? (fills[s-1]||'4%') : '0%';
+  fill.style.background = colors[s-1] || '';
+  lbl.textContent = val.length && s ? labels[s-1] : '';
+  lbl.style.color = colors[s-1] || 'var(--text-faint)';
+});
+
+/* ═══════════════════════════════════════════
+   AUTH LOADING OVERLAY
+   Plays the infinity loop animation when login
+   button is clicked, then redirects.
+═══════════════════════════════════════════ */
+let authBarTimer = null;
+
+function showAuthLoader(statusText, onComplete){
+  const overlay    = document.getElementById('authLoader');
+  const bar        = document.getElementById('authBar');
+  const status     = document.getElementById('authStatus');
+  const line       = document.getElementById('authLine');
+  const spark      = document.getElementById('authSpark');
+  const dot        = document.getElementById('authDot');
+  const dotMotion  = document.getElementById('authDotMotion');
+  const rightLoop  = document.getElementById('authRightLoop');
+  const leftLoop   = document.getElementById('authLeftLoop');
+  const cover      = document.getElementById('authCover');
+
+  status.textContent = statusText;
+  status.style.color = 'rgba(245,240,255,.38)';
+
+  /* ── RESET EVERYTHING ── */
+  line.style.animation    = 'none';
+  spark.style.animation   = 'none';
+  spark.style.opacity     = '0';
+  dot.style.opacity       = '0';
+  line.style.strokeDashoffset = '680';
+  bar.style.width         = '0%';
+  bar.style.transition    = 'none';
+  /* Hide the crossing layers — they appear after draw completes */
+  [rightLoop, leftLoop, cover].forEach(el => { if(el) el.style.opacity = '0'; });
+
+  /* Force reflow */
+  void line.offsetWidth;
+
+  /* ── SHOW OVERLAY ── */
+  overlay.style.opacity    = '1';
+  overlay.style.visibility = 'visible';
+
+  /* ── PHASE 1: Draw-on animation (full path reveals itself) ── */
+  line.style.animation = 'drawInf 1.3s cubic-bezier(.4,0,.2,1) forwards';
+
+  /* ── PHASE 2: After draw — swap to layered crossing + start spark ── */
+  setTimeout(()=>{
+    /* Fade in the layered crossing rendering */
+    line.style.opacity = '0';      /* hide the draw-in line */
+    if(rightLoop) rightLoop.style.opacity = '1';
+    setTimeout(()=>{
+      /* Cover appears — hides where right loop goes "under" */
+      if(cover) cover.style.opacity = '1';
+      setTimeout(()=>{
+        /* Left loop appears on top — creates the crossing visual */
+        if(leftLoop){ leftLoop.style.opacity = '1'; leftLoop.style.transition = 'opacity .2s'; }
+      }, 80);
+    }, 60);
+
+    /* Spark starts looping */
+    spark.style.strokeDashoffset = '0';
+    spark.style.animation =
+      'loopLight 1.8s linear infinite';
+    spark.style.opacity = '1';
+
+    /* Travelling dot */
+    dot.style.opacity = '1';
+    try{ dotMotion.beginElement(); }catch(e){}
+  }, 1300);
+
+  /* ── PROGRESS BAR ── */
+  bar.style.transition = 'width 2.4s cubic-bezier(.4,0,.6,1)';
+  requestAnimationFrame(()=>{ bar.style.width = '85%'; });
+
+  /* ── COMPLETE ── */
+  clearTimeout(authBarTimer);
+  authBarTimer = setTimeout(()=>{
+    bar.style.transition = 'width .4s ease';
+    bar.style.width      = '100%';
+    status.textContent   = 'WELCOME TO INLINK';
+    status.style.color   = '#a855f7';
+    setTimeout(onComplete, 550);
+  }, 2700);
+}
+
+function hideAuthLoader(){
+  const overlay = document.getElementById('authLoader');
+  overlay.style.opacity    = '0';
+  overlay.style.visibility = 'hidden';
+  clearTimeout(authBarTimer);
+}
+
+/* ── SIGN IN ── */
+function doSignIn(){
+  hide('errMsg');
+  const email = v('inEmail'), pass = v('inPass');
+  if(!email || !pass){ showErr('Please fill in all fields.'); return; }
+  if(!email.includes('@')){ showErr('Enter a valid email address.'); return; }
+
+  /* Disable button during auth */
+  const btn = document.getElementById('btnIn');
+  setBtn(btn,'loading','Signing in…');
+
+  /* Trigger the infinity loading animation */
+  showAuthLoader('AUTHENTICATING', ()=>{
+    window.location.href = 'nexus.html';
+  });
+}
+
+/* ── SIGN UP ── */
+function doSignUp(){
+  hide('errMsg');
+  const first = v('upFirst'), last = v('upLast'),
+        user  = v('upUser'),  email = v('upEmail'),
+        pass  = v('upPass'),  agree = document.getElementById('upAgree').checked;
+  if(!first||!last||!user||!email||!pass){ showErr('Please complete all fields.'); return; }
+  if(!email.includes('@')){ showErr('Enter a valid email address.'); return; }
+  if(pass.length < 8){ showErr('Password must be at least 8 characters.'); return; }
+  if(!agree){ showErr('You must agree to the Terms & Privacy Policy.'); return; }
+
+  const btn = document.getElementById('btnUp');
+  setBtn(btn,'loading','Creating account…');
+
+  showAuthLoader('CREATING ACCOUNT', ()=>{
+    hideAuthLoader();
+    setBtn(btn,'ok','Account created ✓');
+    setTimeout(()=>{ switchTab('in'); setBtn(btn,'','Create Account'); }, 1400);
+  });
+}
+
+/* ── HELPERS ── */
+function v(id){ return document.getElementById(id)?.value?.trim()||''; }
+function hide(id){ document.getElementById(id).classList.remove('show'); }
+function showErr(msg){
+  const el = document.getElementById('errMsg');
+  el.textContent = msg; el.classList.add('show');
+  const form = document.querySelector('[id^="form"]:not([style*="none"])');
+  if(form){ form.classList.add('shake'); setTimeout(()=>form.classList.remove('shake'),400); }
+}
+function showMsg(msg){ alert(msg); }
+function setBtn(btn, cls, txt){
+  btn.className = 'btn-go' + (cls ? ' '+cls : '');
+  btn.textContent = txt;
+  btn.disabled = cls === 'loading';
+}
+
+/* ═══════════════════════════════════════════
+   OAUTH CONFIGURATION
+   Paste your credentials here OR use the
+   setup modal (gear icon) to enter them in-app
+═══════════════════════════════════════════ */
+const OAUTH = {
+  google: {
+    clientId: localStorage.getItem('nx_google_id') || '',
+    // Get from: console.cloud.google.com → APIs & Services → Credentials → OAuth 2.0 Client IDs
+  },
+  apple: {
+    clientId: localStorage.getItem('nx_apple_id') || '',
+    redirectUri: localStorage.getItem('nx_apple_redirect') || window.location.href.split('?')[0],
+    // Get from: developer.apple.com → Certificates, IDs & Profiles → Service IDs
+  }
+};
+
+/* ── Initialise Google Identity Services ── */
+let googleReady = false;
+window.addEventListener('load', () => {
+  if(typeof google !== 'undefined' && OAUTH.google.clientId) {
+    try {
+      google.accounts.id.initialize({
+        client_id: OAUTH.google.clientId,
+        callback: handleGoogleCredential,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        ux_mode: 'popup',
+      });
+      googleReady = true;
+    } catch(e){ console.warn('Google GSI init failed:', e); }
+  }
+  if(typeof AppleID !== 'undefined' && OAUTH.apple.clientId) {
+    try {
+      AppleID.auth.init({
+        clientId: OAUTH.apple.clientId,
+        scope: 'name email',
+        redirectURI: OAUTH.apple.redirectUri,
+        state: crypto.randomUUID ? crypto.randomUUID() : 'nexus-' + Date.now(),
+        usePopup: true,
+      });
+    } catch(e){ console.warn('Apple auth init failed:', e); }
+  }
+  renderProviderStatus();
+});
+
+/* ── Google handler ── */
+function handleGoogleCredential(response) {
+  // Decode the JWT to get basic profile info
+  try {
+    const payload = JSON.parse(atob(response.credential.split('.')[1]));
+    console.log('Google sign-in:', payload.name, payload.email);
+  } catch(e){}
+  showAuthLoader('SIGNING IN WITH GOOGLE', () => { window.location.href = 'nexus.html'; });
+}
+
+function signInWithGoogle() {
+  if(!OAUTH.google.clientId) { openSetup('google'); return; }
+  if(!googleReady || typeof google === 'undefined') {
+    showErr('Google SDK still loading, please try again.'); return;
+  }
+  setBtnSoc('btnGoogle', true, 'Connecting…');
+  try {
+    google.accounts.id.prompt(notification => {
+      setBtnSoc('btnGoogle', false, 'Google');
+      if(notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        // Fallback: open OAuth popup via redirect
+        const params = new URLSearchParams({
+          client_id: OAUTH.google.clientId,
+          redirect_uri: OAUTH.apple.redirectUri,
+          response_type: 'token',
+          scope: 'openid email profile',
+          prompt: 'select_account',
+        });
+        window.open('https://accounts.google.com/o/oauth2/v2/auth?' + params, '_blank', 'width=500,height=600');
+      }
+    });
+  } catch(e) {
+    setBtnSoc('btnGoogle', false, 'Google');
+    showErr('Google sign-in unavailable. Check your Client ID.');
+  }
+}
+
+/* ── Apple handler ── */
+async function signInWithApple() {
+  if(!OAUTH.apple.clientId) { openSetup('apple'); return; }
+  if(typeof AppleID === 'undefined') { showErr('Apple SDK still loading, please try again.'); return; }
+  setBtnSoc('btnApple', true, 'Connecting…');
+  try {
+    const data = await AppleID.auth.signIn();
+    setBtnSoc('btnApple', false, 'Apple');
+    const user = data.user;
+    const name = user ? `${user.name?.firstName || ''} ${user.name?.lastName || ''}`.trim() : 'Apple User';
+    console.log('Apple sign-in:', name, data.authorization?.id_token ? '(token received)' : '');
+    showAuthLoader('SIGNING IN WITH APPLE', () => { window.location.href = 'nexus.html'; });
+  } catch(e) {
+    setBtnSoc('btnApple', false, 'Apple');
+    if(e.error !== 'popup_closed_by_user' && e.error !== 'user_cancelled_authorize') {
+      showErr('Apple sign-in failed: ' + (e.error || e.message || 'Unknown error'));
+    }
+  }
+}
+
+function setBtnSoc(id, loading, label) {
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  btn.disabled = loading;
+  btn.style.opacity = loading ? '0.6' : '';
+  const txt = btn.querySelector('span') || btn;
+  // Just replace text node
+  const nodes = [...btn.childNodes];
+  const textNode = nodes.find(n => n.nodeType === 3);
+  if(textNode) textNode.textContent = '\u00a0' + label;
+}
+
+/* ═══════════════════════════════════════════
+   SETUP MODAL
+═══════════════════════════════════════════ */
+function openSetup(highlight) {
+  document.getElementById('setupScrim').classList.add('open');
+  if(highlight) {
+    setTimeout(()=>{
+      const el = document.getElementById(highlight === 'google' ? 'inputGoogleId' : 'inputAppleId');
+      if(el){ el.focus(); el.scrollIntoView({behavior:'smooth',block:'center'}); }
+    }, 300);
+  }
+}
+function closeSetup() { document.getElementById('setupScrim').classList.remove('open'); }
+
+function saveOAuthConfig() {
+  const gId = document.getElementById('inputGoogleId').value.trim();
+  const aId = document.getElementById('inputAppleId').value.trim();
+  const aRedir = document.getElementById('inputAppleRedirect').value.trim();
+
+  if(gId)  { OAUTH.google.clientId = gId; localStorage.setItem('nx_google_id', gId); }
+  if(aId)  { OAUTH.apple.clientId  = aId; localStorage.setItem('nx_apple_id', aId); }
+  if(aRedir){ OAUTH.apple.redirectUri = aRedir; localStorage.setItem('nx_apple_redirect', aRedir); }
+
+  // Re-init Google with new id
+  if(gId && typeof google !== 'undefined') {
+    try {
+      google.accounts.id.initialize({
+        client_id: gId, callback: handleGoogleCredential,
+        auto_select: false, cancel_on_tap_outside: true, ux_mode: 'popup',
+      });
+      googleReady = true;
+    } catch(e){}
+  }
+  // Re-init Apple
+  if(aId && typeof AppleID !== 'undefined') {
+    try {
+      AppleID.auth.init({
+        clientId: aId, scope: 'name email',
+        redirectURI: aRedir || OAUTH.apple.redirectUri,
+        usePopup: true,
+      });
+    } catch(e){}
+  }
+
+  renderProviderStatus();
+  const btn = document.getElementById('btnSaveSetup');
+  btn.textContent = 'Saved ✓';
+  btn.style.background = 'linear-gradient(135deg,#15803d,#22c55e)';
+  setTimeout(()=>{
+    btn.textContent = 'Save Credentials';
+    btn.style.background = '';
+    closeSetup();
+  }, 1500);
+}
+
+function renderProviderStatus() {
+  const gBadge = document.getElementById('googleBadge');
+  const aBadge = document.getElementById('appleBadge');
+  if(gBadge) {
+    gBadge.className = 'provider-status ' + (OAUTH.google.clientId ? 'active' : 'pending');
+    gBadge.textContent = OAUTH.google.clientId ? '● ACTIVE' : '○ NOT SET';
+  }
+  if(aBadge) {
+    aBadge.className = 'provider-status ' + (OAUTH.apple.clientId ? 'active' : 'pending');
+    aBadge.textContent = OAUTH.apple.clientId ? '● ACTIVE' : '○ NOT SET';
+  }
+  // Populate input fields with saved values
+  const gi = document.getElementById('inputGoogleId');
+  const ai = document.getElementById('inputAppleId');
+  const ar = document.getElementById('inputAppleRedirect');
+  if(gi) gi.value = OAUTH.google.clientId;
+  if(ai) ai.value = OAUTH.apple.clientId;
+  if(ar) ar.value = OAUTH.apple.redirectUri !== window.location.href.split('?')[0] ? OAUTH.apple.redirectUri : '';
+}
+
+<!-- ═══════════════════════════════════════════
+     OAUTH SETUP MODAL
+═══════════════════════════════════════════ -->
+<div class="setup-scrim" id="setupScrim" onclick="if(event.target===this)closeSetup()">
+  <div class="setup-modal">
+    <div class="setup-close" onclick="closeSetup()">×</div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple-pale)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <div class="setup-title">OAuth Setup</div>
+    </div>
+    <div class="setup-sub">Paste your provider credentials below. They're stored locally on this device only — never sent anywhere.</div>
+
+    <!-- GOOGLE -->
+    <div class="setup-step">
+      <div class="setup-step-head">
+        <div class="setup-badge">G</div>
+        <div class="setup-step-title">Google Sign-In</div>
+        <span class="provider-status pending" id="googleBadge">○ NOT SET</span>
+      </div>
+      <p>1. Go to <a href="https://console.cloud.google.com" target="_blank">console.cloud.google.com</a> → <strong>APIs &amp; Services → Credentials</strong></p>
+      <p>2. Click <strong>Create Credentials → OAuth 2.0 Client ID</strong> → choose <strong>Web application</strong></p>
+      <p>3. Under <em>Authorised JavaScript origins</em>, add your domain (or <code style="color:#c4b5fd">http://localhost</code> for local testing)</p>
+      <p>4. Copy the <strong>Client ID</strong> and paste below:</p>
+      <input class="setup-input" id="inputGoogleId" placeholder="123456789-abc123.apps.googleusercontent.com" spellcheck="false">
+    </div>
+
+    <!-- APPLE -->
+    <div class="setup-step">
+      <div class="setup-step-head">
+        <div class="setup-badge" style="background:linear-gradient(135deg,#444,#111);">
+          <svg width="12" height="12" viewBox="0 0 814 1000" fill="white"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46 680.6 0 558.4 0 440.4c0-203.2 133-310.7 264-310.7 69.4 0 127.1 45.8 170.3 45.8 41.3 0 106.4-48.8 184.6-48.8 29.1 0 108.2 2.6 168.5 80.1zm-87.7-180.5c31.4-37.7 53.3-89.8 53.3-141.9 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 84.5-55.1 139.9 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.3-72.1z"/></svg>
+        </div>
+        <div class="setup-step-title">Sign in with Apple (iCloud)</div>
+        <span class="provider-status pending" id="appleBadge">○ NOT SET</span>
+      </div>
+      <p>Requires an <a href="https://developer.apple.com" target="_blank">Apple Developer account</a> ($99/yr). Steps:</p>
+      <p>1. Go to <strong>Certificates, IDs &amp; Profiles → Identifiers → Service IDs</strong></p>
+      <p>2. Create a new Service ID (this becomes your <code style="color:#c4b5fd">clientId</code>)</p>
+      <p>3. Enable <strong>Sign In with Apple</strong> → configure your domain and the Return URL below</p>
+      <p>4. Under <em>App ID</em>, also enable <strong>Sign In with Apple</strong> capability</p>
+      <input class="setup-input" id="inputAppleId" placeholder="com.yourcompany.inlink.service" spellcheck="false" style="margin-bottom:8px;">
+      <input class="setup-input" id="inputAppleRedirect" placeholder="Return / Redirect URI (e.g. https://yourdomain.com/login)" spellcheck="false">
+      <div class="setup-code">⚠ Apple requires HTTPS and a registered domain. Sign In with Apple does not work on file:// or content:// URLs. Host the login page at your domain and register that domain in App Store Connect.</div>
+    </div>
+
+    <button class="setup-save" id="btnSaveSetup" onclick="saveOAuthConfig()">Save Credentials</button>
+  </div>
+</div>
+
+<!-- Gear / setup trigger — small button in auth panel corner -->
+<button onclick="openSetup()" title="Configure OAuth providers" style="
+  position:fixed;bottom:20px;right:20px;z-index:50;
+  width:40px;height:40px;border-radius:50%;border:1px solid rgba(147,51,234,.3);
+  background:rgba(10,0,30,.8);backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:rgba(147,51,234,.7);transition:all .2s;
+  box-shadow:0 4px 16px rgba(0,0,0,.4);
+" onmouseover="this.style.color='#a855f7';this.style.borderColor='rgba(147,51,234,.6)'"
+   onmouseout="this.style.color='rgba(147,51,234,.7)';this.style.borderColor='rgba(147,51,234,.3)'">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+</button>
+
+</body>
+</html>
+
